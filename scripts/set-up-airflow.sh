@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker/airflow/docker-compose.yml"
 AIRFLOW_URL="http://localhost:8080"
+WAREHOUSE_NET="mailamericas-warehouse-net"
+AIRFLOW_CONTAINERS=(mailamericas-airflow-scheduler mailamericas-airflow-webserver)
 
 # UID de quien ejecuta, para que airflow/logs no quede como root
 export AIRFLOW_UID="$(id -u)"
@@ -26,6 +28,22 @@ create_dirs() {
   mkdir -p "$ROOT_DIR"/airflow/{dags,plugins,logs}
 }
 
+# Conecta Airflow a la red del warehouse si está levantado (idempotente).
+# Hace falta tras cada recreación de contenedores, porque la conexión manual se pierde.
+connect_warehouse() {
+  if ! docker network inspect "$WAREHOUSE_NET" >/dev/null 2>&1; then
+    log "Warehouse no levantado: se conectará al ejecutar set-up-warehouse.sh up"
+    return 0
+  fi
+  for c in "${AIRFLOW_CONTAINERS[@]}"; do
+    if docker inspect -f '{{json .NetworkSettings.Networks}}' "$c" | grep -q "\"$WAREHOUSE_NET\""; then
+      continue
+    fi
+    docker network connect "$WAREHOUSE_NET" "$c"
+    log "Conectado $c a $WAREHOUSE_NET"
+  done
+}
+
 verify() {
   log "Verificando..."
   curl -sf "$AIRFLOW_URL/health" >/dev/null || fail "El webserver no responde en $AIRFLOW_URL/health"
@@ -39,6 +57,7 @@ case "${1:-}" in
     create_dirs
     log "Construyendo y levantando el stack (la primera vez tarda unos minutos)..."
     compose up -d --build --wait
+    connect_warehouse
     verify
     ;;
   down)   compose down ;;

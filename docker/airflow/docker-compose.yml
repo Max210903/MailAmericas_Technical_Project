@@ -16,10 +16,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
     # Conexión "warehouse_default" (mismos valores por defecto que docker/warehouse/docker-compose.yml)
     AIRFLOW_CONN_WAREHOUSE_DEFAULT: postgresql://${WAREHOUSE_DB_USER:-warehouse}:${WAREHOUSE_DB_PASSWORD:-warehouse}@warehouse-db:5432/warehouse
+    # dbt busca profiles.yml en el propio proyecto
+    DBT_PROFILES_DIR: /opt/airflow/dbt
   volumes:
     - ../../airflow/dags:/opt/airflow/dags
     - ../../airflow/plugins:/opt/airflow/plugins
     - ../../airflow/logs:/opt/airflow/logs
+    - ../../dbt:/opt/airflow/dbt
 
 services:
   airflow-db:

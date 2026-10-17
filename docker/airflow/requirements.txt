@@ -1,0 +1,2 @@
+# Conexión de Airflow al warehouse (Postgres)
+apache-airflow-providers-postgres

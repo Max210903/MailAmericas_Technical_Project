@@ -7,3 +7,12 @@ RUN pip install --no-cache-dir \
       "apache-airflow==${AIRFLOW_VERSION}" \
       -r /requirements.txt \
       --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION%.*}.txt"
+
+# dbt en un virtualenv propio para no mezclar sus dependencias con las de Airflow.
+# Solo se enlaza el ejecutable "dbt" en el PATH (no el python del venv).
+ARG DBT_CORE_VERSION=1.12.6
+ARG DBT_POSTGRES_VERSION=1.11.0
+RUN python -m venv /home/airflow/dbt-venv \
+ && /home/airflow/dbt-venv/bin/pip install --no-cache-dir \
+      "dbt-core==${DBT_CORE_VERSION}" "dbt-postgres==${DBT_POSTGRES_VERSION}" \
+ && ln -s /home/airflow/dbt-venv/bin/dbt /home/airflow/.local/bin/dbt

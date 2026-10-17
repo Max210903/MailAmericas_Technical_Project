@@ -1,0 +1,13 @@
+# Credenciales por variables de entorno, con los mismos valores por defecto que docker/warehouse/docker-compose.yml
+mailamericas:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('WAREHOUSE_DB_HOST', 'warehouse-db') }}"
+      port: 5432
+      user: "{{ env_var('WAREHOUSE_DB_USER', 'warehouse') }}"
+      password: "{{ env_var('WAREHOUSE_DB_PASSWORD', 'warehouse') }}"
+      dbname: warehouse
+      schema: public
+      threads: 4

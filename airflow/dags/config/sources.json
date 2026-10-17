@@ -1,0 +1,42 @@
+{
+  "indec_radios_censales": {
+    "descripcion": "Población por radio censal, Censo 2022 (viviendas particulares)",
+    "organismo": "INDEC",
+    "url": "https://infra.datos.gob.ar/catalog/indec/dataset/50/distribution/50.1/download/radios-censales-2022.csv"
+  },
+  "georef_departamentos": {
+    "descripcion": "Departamentos con provincia y centroide (lat/lon)",
+    "organismo": "Servicio de Normalización de Datos Geográficos (datos.gob.ar)",
+    "url": "https://apis.datos.gob.ar/georef/api/departamentos?max=1000&campos=id,nombre,provincia,centroide&formato=csv"
+  },
+  "indec_censo_hogares": {
+    "descripcion": "Indicadores de hogares por radio censal, Censo 2022 (un ZIP por provincia)",
+    "organismo": "INDEC",
+    "urls": [
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.1/download/02-caba-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.2/download/06-buenos-aires-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.3/download/10-catamarca-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.4/download/14-cordoba-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.5/download/18-corrientes-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.6/download/22-chaco-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.7/download/26-chubut-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.8/download/30-entre-rios-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.9/download/34-formosa-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.10/download/38-jujuy-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.11/download/42-la-pampa-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.12/download/46-la-rioja-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.13/download/50-mendoza-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.14/download/54-misiones-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.15/download/58-neuquen-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.16/download/62-rio-negro-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.17/download/66-salta-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.18/download/70-san-juan-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.19/download/74-san-luis-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.20/download/78-santa-cruz-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.21/download/82-santa-fe-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.22/download/86-santiago-del-estero-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.23/download/90-tucuman-2022.zip",
+      "https://infra.datos.gob.ar/catalog/indec/dataset/48/distribution/48.24/download/94-tierra-del-fuego-2022.zip"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+name: mailamericas-warehouse
+
+services:
+  warehouse-db:
+    image: postgres:16
+    container_name: mailamericas-warehouse-db
+    environment:
+      POSTGRES_USER: ${WAREHOUSE_DB_USER:-warehouse}
+      POSTGRES_PASSWORD: ${WAREHOUSE_DB_PASSWORD:-warehouse}
+      POSTGRES_DB: warehouse
+    ports:
+      - "5432:5432"   # Para conectarse desde el host (DBeaver, psql)
+    volumes:
+      - warehouse_db_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d warehouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  warehouse_db_data:
+
+# Nombre fijo para que los scripts puedan conectar los contenedores de Airflow a esta red
+networks:
+  default:
+    name: mailamericas-warehouse-net

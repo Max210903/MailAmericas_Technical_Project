@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: georef
+    description: API Georef (Servicio de Normalización de Datos Geográficos, datos.gob.ar). Cargada tal cual por Airflow.
+    schema: raw
+    tables:
+      - name: georef_departamentos
+        description: Departamentos de Argentina con su provincia y centroide.

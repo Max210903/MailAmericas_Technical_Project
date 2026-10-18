@@ -183,6 +183,9 @@ def mailamerica_pipeline():
             # dbt está en otro virtualenv: se ejecuta como subproceso. Explícito porque Cosmos confunde
             # la carpeta del proyecto (/opt/airflow/dbt) con el paquete dbt y elegiría DBT_RUNNER
             invocation_mode=InvocationMode.SUBPROCESS,
+            # Los tests que usan varios modelos (relationships con Georef, tests singulares de marts)
+            # van en una tarea aparte que espera a todos esos modelos
+            should_detach_multiple_parents_tests=True,
         ),
         execution_config=ExecutionConfig(
             dbt_executable_path=DBT_EXECUTABLE,

@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_indec__radios_censales
+    description: Un registro por radio censal, con su población y viviendas particulares (Censo 2022).
+    columns:
+      - name: codigo_radio
+        description: Código del radio censal (provincia + departamento + fracción + radio).
+        data_tests:
+          - unique
+          - not_null
+      - name: codigo_provincia
+        description: Código INDEC de provincia, 2 dígitos.
+        data_tests:
+          - not_null
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos (2 de provincia + 3 de departamento).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_georef__departamentos')
+                field: codigo_departamento
+      - name: poblacion
+        description: Población en viviendas particulares del radio.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0

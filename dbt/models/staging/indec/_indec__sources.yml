@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: indec
+    description: Censo Nacional de Población, Hogares y Viviendas 2022 (INDEC). Cargado tal cual por Airflow.
+    schema: raw
+    tables:
+      - name: indec_radios_censales
+        description: Población y viviendas por radio censal (solo viviendas particulares), con su geometría (wkt).

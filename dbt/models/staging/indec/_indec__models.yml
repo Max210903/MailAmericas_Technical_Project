@@ -18,6 +18,7 @@ models:
         data_tests:
           - not_null
           - relationships:
+              name: radios_departamento_existe_en_georef
               arguments:
                 to: ref('stg_georef__departamentos')
                 field: codigo_departamento
@@ -46,6 +47,7 @@ models:
         data_tests:
           - not_null
           - relationships:
+              name: hogares_departamento_existe_en_georef
               arguments:
                 to: ref('stg_georef__departamentos')
                 field: codigo_departamento

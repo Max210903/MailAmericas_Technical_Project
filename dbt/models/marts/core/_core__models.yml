@@ -7,6 +7,7 @@ models:
       viviendas particulares y los indicadores de hogares del Censo 2022. Base de todas las tablas del reporte.
     data_tests:
       - dbt_utils.equal_rowcount:
+          name: departamentos_mismas_filas_que_georef
           arguments:
             compare_model: ref('stg_georef__departamentos')
     columns:

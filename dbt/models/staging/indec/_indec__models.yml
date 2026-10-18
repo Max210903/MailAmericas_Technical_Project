@@ -28,3 +28,45 @@ models:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0
+
+  - name: stg_indec__censo_hogares
+    description: >
+      Hogares por radio censal, variable y categoría (Censo 2022), solo para las variables de la métrica
+      de e-commerce. Usar codigo_categoria y no el texto de categoria: el "sí" está escrito distinto según la variable.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [codigo_radio, variable, codigo_categoria]
+    columns:
+      - name: codigo_radio
+        data_tests:
+          - not_null
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos (2 de provincia + 3 de departamento).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_georef__departamentos')
+                field: codigo_departamento
+      - name: variable
+        description: >
+          HOGAR_H24A internet en la vivienda; HOGAR_H24B celular con internet;
+          HOGAR_H24C computadora o tablet; HOGAR_IPMH índice de privación material.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [HOGAR_H24A, HOGAR_H24B, HOGAR_H24C, HOGAR_IPMH]
+      - name: codigo_categoria
+        description: >
+          H24A/B/C: 1 = sí, 2 = no. IPMH: 1 = sin privación, 2 = solo recursos corrientes,
+          3 = solo recursos patrimoniales, 4 = convergente.
+        data_tests:
+          - not_null
+      - name: hogares
+        description: Cantidad de hogares del radio en esa categoría.
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0

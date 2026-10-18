@@ -7,3 +7,7 @@ sources:
     tables:
       - name: indec_radios_censales
         description: Población y viviendas por radio censal (solo viviendas particulares), con su geometría (wkt).
+      - name: indec_censo_hogares
+        description: >
+          Indicadores de hogares por radio censal, en formato largo (una fila por radio, variable y categoría).
+          Unión de los archivos de hogares de las 24 provincias.

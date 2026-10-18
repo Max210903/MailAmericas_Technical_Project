@@ -9,11 +9,15 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import requests
 from airflow.decorators import dag, task, task_group
 
 # Fuentes públicas: cada una se descarga y se carga tal cual a raw.<nombre>
 SOURCES_FILE = Path(__file__).parent / "config" / "sources.json"
 SOURCES = json.loads(SOURCES_FILE.read_text(encoding="utf-8"))
+
+# Descargas dentro del contenedor (no montado: se vuelven a bajar en cada ejecución)
+DATA_DIR = Path("/opt/airflow/data")
 
 
 @dag(
@@ -29,8 +33,28 @@ SOURCES = json.loads(SOURCES_FILE.read_text(encoding="utf-8"))
 def mailamerica_pipeline():
 
     @task
-    def download(url: str) -> str:
-        return url  # temporal: luego descargará el archivo y devolverá la ruta local
+    def download(source: str, url: str) -> str:
+        """Descarga el archivo tal cual a data/<source>/ y devuelve la ruta local."""
+        target_dir = DATA_DIR / source
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Nombre del archivo: el de la URL (p. ej. 02-caba-2022.zip); si la URL es una API sin extensión, <source>.csv
+        filename = url.split("?")[0].rsplit("/", 1)[-1]
+        if "." not in filename:
+            filename = f"{source}.csv"
+        target = target_dir / filename
+
+        # Descarga en streaming (el CSV de radios pesa ~131 MB) y escribe a un temporal:
+        # si falla a mitad de camino, no queda un archivo corrupto con el nombre final
+        tmp = target.with_suffix(target.suffix + ".part")
+        with requests.get(url, stream=True, timeout=(10, 300)) as response:
+            response.raise_for_status()
+            with tmp.open("wb") as f:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    f.write(chunk)
+        tmp.replace(target)
+
+        return str(target)
 
     @task
     def load_to_raw(files, table: str) -> str:
@@ -54,9 +78,11 @@ def mailamerica_pipeline():
         for name, cfg in SOURCES.items():
             if "urls" in cfg:
                 # Varias URLs (un ZIP por provincia): una instancia mapeada por archivo
-                extracted[name] = download.override(task_id=name).expand(url=cfg["urls"])
+                extracted[name] = (
+                    download.override(task_id=name).partial(source=name).expand(url=cfg["urls"])
+                )
             else:
-                extracted[name] = download.override(task_id=name)(url=cfg["url"])
+                extracted[name] = download.override(task_id=name)(source=name, url=cfg["url"])
         return extracted
 
     @task_group

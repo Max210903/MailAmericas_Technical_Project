@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: departamentos
+    description: >
+      Una fila por departamento oficial de Argentina (lista de Georef), con su ubicación, la población en
+      viviendas particulares y los indicadores de hogares del Censo 2022. Base de todas las tablas del reporte.
+    data_tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('stg_georef__departamentos')
+    columns:
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos (2 de provincia + 3 de departamento).
+        data_tests:
+          - unique
+          - not_null
+      - name: nombre_departamento
+      - name: codigo_provincia
+      - name: nombre_provincia
+      - name: latitud
+        description: Latitud del centroide del departamento (Georef).
+      - name: longitud
+        description: Longitud del centroide del departamento (Georef).
+      - name: poblacion
+        description: Población en viviendas particulares (suma de los radios censales).
+      - name: viviendas
+        description: Viviendas particulares (suma de los radios censales).
+      - name: radios
+        description: Cantidad de radios censales del departamento.
+      - name: hogares_total
+        description: Hogares particulares.
+      - name: hogares_con_internet
+        description: Hogares con internet en la vivienda.
+      - name: hogares_con_celular_internet
+        description: Hogares con celular con internet.
+      - name: hogares_con_computadora
+        description: Hogares con computadora o tablet.
+      - name: hogares_sin_privacion
+        description: Hogares sin privación material.
+      - name: hogares_digitalizados_estimados
+        description: Estimación de hogares con internet en la vivienda y sin privación material (ver int_hogares_por_radio).
+      - name: hogares_digitalizados_min
+        description: Cota inferior exacta de hogares con internet y sin privación.
+      - name: hogares_digitalizados_max
+        description: Cota superior exacta de hogares con internet y sin privación.
+      - name: tiene_poblacion
+        description: El departamento tiene radios censales con datos de población.
+      - name: tiene_hogares
+        description: El departamento tiene datos de hogares (falta en departamentos sin hogares particulares).

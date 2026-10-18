@@ -7,6 +7,7 @@ las transforma con dbt y genera el reporte final.
 
 import csv
 import json
+import logging
 import zipfile
 from contextlib import contextmanager
 from datetime import datetime
@@ -22,6 +23,9 @@ SOURCES = json.loads(SOURCES_FILE.read_text(encoding="utf-8"))
 
 # Descargas dentro del contenedor (no montado: se vuelven a bajar en cada ejecución)
 DATA_DIR = Path("/opt/airflow/data")
+
+# Logger de tareas de Airflow: lo que se registre aquí aparece en el log de cada tarea en la UI
+log = logging.getLogger("airflow.task")
 
 
 @contextmanager
@@ -61,6 +65,7 @@ def mailamerica_pipeline():
             filename = f"{source}.csv"
         target = target_dir / filename
 
+        log.info("Descargando %s", url)
         # Descarga en streaming (el CSV de radios pesa ~131 MB) y escribe a un temporal:
         # si falla a mitad de camino, no queda un archivo corrupto con el nombre final
         tmp = target.with_suffix(target.suffix + ".part")
@@ -71,6 +76,7 @@ def mailamerica_pipeline():
                     f.write(chunk)
         tmp.replace(target)
 
+        log.info("Guardado en %s (%.1f MB)", target, target.stat().st_size / 1024**2)
         return str(target)
 
     @task
@@ -80,6 +86,7 @@ def mailamerica_pipeline():
         files = (
             [files] if isinstance(files, str) else list(files)
         )  # una ruta o la lista mapeada
+        log.info("Cargando %d archivo(s) a raw.%s", len(files), table)
         conn = PostgresHook(postgres_conn_id="warehouse_default").get_conn()
         header = None
         with (
@@ -107,9 +114,11 @@ def mailamerica_pipeline():
                         f"copy raw.{table} ({', '.join(columns)}) from stdin with (format csv)",
                         f,
                     )
+                    log.info("  %s: %d filas", Path(path).name, cur.rowcount)
             cur.execute(f"select count(*) from raw.{table}")
             total = cur.fetchone()[0]
         conn.close()
+        log.info("raw.%s reemplazada: %d filas en total", table, total)
         return total  # filas cargadas, visible en XCom
 
     @task.bash

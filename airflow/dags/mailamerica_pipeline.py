@@ -24,6 +24,9 @@ SOURCES = json.loads(SOURCES_FILE.read_text(encoding="utf-8"))
 # Descargas dentro del contenedor (no montado: se vuelven a bajar en cada ejecución)
 DATA_DIR = Path("/opt/airflow/data")
 
+# Proyecto dbt montado desde dbt/ (el perfil se toma de DBT_PROFILES_DIR, definido en el compose)
+DBT_DIR = "/opt/airflow/dbt"
+
 # Logger de tareas de Airflow: lo que se registre aquí aparece en el log de cada tarea en la UI
 log = logging.getLogger("airflow.task")
 
@@ -121,13 +124,14 @@ def mailamerica_pipeline():
         log.info("raw.%s reemplazada: %d filas en total", table, total)
         return total  # filas cargadas, visible en XCom
 
-    @task.bash
+    @task.bash(cwd=DBT_DIR)
     def dbt_deps() -> str:
-        return "echo 'pendiente: dbt deps'"
+        return "dbt deps --no-use-colors"
 
-    @task.bash
+    @task.bash(cwd=DBT_DIR)
     def dbt_build() -> str:
-        return "echo 'pendiente: dbt build'"
+        # Modelos + tests en orden: si un test falla, la tarea falla y el reporte no se genera
+        return "dbt build --no-use-colors"
 
     @task
     def generate_report() -> None:

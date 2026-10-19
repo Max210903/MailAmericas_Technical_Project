@@ -30,3 +30,26 @@ models:
         description: Población en viviendas particulares.
       - name: porcentaje_poblacion_nacional
         description: Porcentaje de la población nacional en viviendas particulares, con 2 decimales.
+
+  - name: rpt_poblacion_por_provincia
+    description: >
+      Pregunta 2 del reporte: población en viviendas particulares por provincia (24 jurisdicciones,
+      incluida CABA) y su porcentaje sobre el total nacional.
+    columns:
+      - name: ranking
+        description: Posición por población (1 = más poblada).
+        data_tests:
+          - unique
+          - not_null
+      - name: codigo_provincia
+        description: Código INDEC de provincia, 2 dígitos.
+        data_tests:
+          - unique
+          - not_null
+      - name: nombre_provincia
+      - name: departamentos
+        description: Cantidad de departamentos de la provincia (lista de Georef).
+      - name: poblacion
+        description: Población en viviendas particulares.
+      - name: porcentaje_poblacion_nacional
+        description: Porcentaje de la población nacional en viviendas particulares, con 2 decimales.

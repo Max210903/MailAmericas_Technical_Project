@@ -23,7 +23,7 @@ from cosmos import (
     ProjectConfig,
     RenderConfig,
 )
-from cosmos.constants import InvocationMode, LoadMode
+from cosmos.constants import InvocationMode, LoadMode, TestBehavior
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 # Fuentes públicas: cada una se descarga y se carga tal cual a raw.<nombre>
@@ -240,7 +240,7 @@ def mailamerica_pipeline():
             for name, files in extracted.items()
         ]
 
-    # Cosmos convierte cada modelo de dbt en una tarea de Airflow (y su test a continuación),
+    # Cosmos convierte cada modelo de dbt en una tarea de Airflow,
     # respetando el linaje de los ref(): staging → intermediate → marts
     transform = DbtTaskGroup(
         group_id="transform",
@@ -259,6 +259,8 @@ def mailamerica_pipeline():
             # dbt está en otro virtualenv: se ejecuta como subproceso. Explícito porque Cosmos confunde
             # la carpeta del proyecto (/opt/airflow/dbt) con el paquete dbt y elegiría DBT_RUNNER
             invocation_mode=InvocationMode.SUBPROCESS,
+            # Una tarea por modelo con dbt build (corre el modelo y sus tests), en vez de un subgrupo run + test
+            test_behavior=TestBehavior.BUILD,
             # Los tests que usan varios modelos (relationships con Georef, tests singulares de marts)
             # van en una tarea aparte que espera a todos esos modelos
             should_detach_multiple_parents_tests=True,

@@ -78,3 +78,54 @@ models:
               arguments:
                 min_value: 0
                 max_value: 100
+
+  - name: rpt_demanda_ecommerce
+    description: >
+      Pregunta 4 del reporte: demanda potencial de e-commerce por departamento. Cruza el tamaño del
+      mercado digital (hogares con celular con internet) con la capacidad de compra (% de hogares sin
+      privación material) y segmenta cada departamento en 4 grupos. Solo usa conteos exactos del censo.
+    columns:
+      - name: ranking_mercado
+        description: Posición por hogares conectados (1 = mercado más grande).
+        data_tests:
+          - unique
+          - not_null
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos.
+        data_tests:
+          - unique
+          - not_null
+      - name: nombre_departamento
+      - name: nombre_provincia
+      - name: latitud
+        description: Latitud del centroide del departamento (Georef).
+      - name: longitud
+        description: Longitud del centroide del departamento (Georef).
+      - name: hogares_total
+        description: Hogares particulares.
+      - name: hogares_conectados
+        description: Hogares con celular con internet (HOGAR_H24B = 1); tamaño del mercado digital.
+      - name: pct_hogares_conectados
+        description: Porcentaje de hogares con celular con internet (nulo si no hay hogares).
+      - name: pct_hogares_sin_privacion
+        description: Porcentaje de hogares sin privación material; capacidad de compra (nulo si no hay hogares).
+      - name: porcentaje_mercado_nacional
+        description: Porcentaje de los hogares conectados del país.
+      - name: porcentaje_acumulado
+        description: Porcentaje acumulado de hogares conectados, de mayor a menor mercado.
+      - name: segmento
+        description: >
+          Mercado principal = departamentos necesarios para reunir el 80% de los hogares conectados;
+          capacidad alta = % sin privación mayor o igual al promedio nacional. Prioritario (principal y alta),
+          Volumen con baja capacidad de compra (principal y baja), Nicho con capacidad de compra (resto y alta),
+          Baja prioridad (resto y baja), Sin hogares (departamentos sin hogares particulares).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - Prioritario
+                  - Volumen con baja capacidad de compra
+                  - Nicho con capacidad de compra
+                  - Baja prioridad
+                  - Sin hogares

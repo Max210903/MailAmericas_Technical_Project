@@ -3,8 +3,8 @@ version: 2
 models:
   - name: int_hogares_por_radio
     description: >
-      Una fila por radio censal con los hogares de cada indicador de la métrica de e-commerce,
-      y la estimación de hogares con internet y sin privación material (con sus cotas exactas).
+      Una fila por radio censal con los hogares de cada indicador de la métrica de e-commerce.
+      Solo conteos exactos: el censo publica cada variable por separado, sin cruces entre ellas.
     columns:
       - name: codigo_radio
         data_tests:
@@ -27,11 +27,3 @@ models:
         description: Hogares con computadora o tablet (HOGAR_H24C = 1).
       - name: hogares_sin_privacion
         description: Hogares sin privación material (HOGAR_IPMH = 1).
-      - name: hogares_digitalizados_estimados
-        description: >
-          Estimación de hogares con internet en la vivienda y sin privación material, suponiendo
-          independencia entre ambas variables dentro del radio.
-      - name: hogares_digitalizados_min
-        description: Cota inferior exacta (Fréchet) de hogares con internet y sin privación.
-      - name: hogares_digitalizados_max
-        description: Cota superior exacta (Fréchet) de hogares con internet y sin privación.

@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: int_hogares_por_radio
+    description: >
+      Una fila por radio censal con los hogares de cada indicador de la métrica de e-commerce.
+      Solo conteos exactos: el censo publica cada variable por separado, sin cruces entre ellas.
+    columns:
+      - name: codigo_radio
+        data_tests:
+          - unique
+          - not_null
+      - name: codigo_departamento
+        data_tests:
+          - not_null
+      - name: hogares_total
+        description: Total de hogares particulares del radio (suma de las categorías de HOGAR_H24A).
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: hogares_con_internet
+        description: Hogares con internet en la vivienda (HOGAR_H24A = 1).
+      - name: hogares_con_celular_internet
+        description: Hogares con celular con internet (HOGAR_H24B = 1).
+      - name: hogares_con_computadora
+        description: Hogares con computadora o tablet (HOGAR_H24C = 1).
+      - name: hogares_sin_privacion
+        description: Hogares sin privación material (HOGAR_IPMH = 1).

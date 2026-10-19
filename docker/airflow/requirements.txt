@@ -1,2 +1,4 @@
 # Conexión de Airflow al warehouse (Postgres)
 apache-airflow-providers-postgres
+# Orquestación de dbt con una tarea por modelo y por test (requiere Airflow >= 2.9)
+astronomer-cosmos==1.15.1

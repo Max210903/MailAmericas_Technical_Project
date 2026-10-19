@@ -16,6 +16,14 @@ from pathlib import Path
 import requests
 from airflow.decorators import dag, task, task_group
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from cosmos import (
+    DbtTaskGroup,
+    ExecutionConfig,
+    ProfileConfig,
+    ProjectConfig,
+    RenderConfig,
+)
+from cosmos.constants import InvocationMode, LoadMode
 
 # Fuentes públicas: cada una se descarga y se carga tal cual a raw.<nombre>
 SOURCES_FILE = Path(__file__).parent / "config" / "sources.json"
@@ -23,6 +31,12 @@ SOURCES = json.loads(SOURCES_FILE.read_text(encoding="utf-8"))
 
 # Descargas dentro del contenedor (no montado: se vuelven a bajar en cada ejecución)
 DATA_DIR = Path("/opt/airflow/data")
+
+# Proyecto dbt montado desde dbt/ (el perfil se toma de DBT_PROFILES_DIR, definido en el compose)
+DBT_DIR = "/opt/airflow/dbt"
+
+# dbt vive en su propio virtualenv dentro de la imagen (ver docker/airflow/Dockerfile)
+DBT_EXECUTABLE = "/home/airflow/dbt-venv/bin/dbt"
 
 # Logger de tareas de Airflow: lo que se registre aquí aparece en el log de cada tarea en la UI
 log = logging.getLogger("airflow.task")
@@ -121,14 +135,6 @@ def mailamerica_pipeline():
         log.info("raw.%s reemplazada: %d filas en total", table, total)
         return total  # filas cargadas, visible en XCom
 
-    @task.bash
-    def dbt_deps() -> str:
-        return "echo 'pendiente: dbt deps'"
-
-    @task.bash
-    def dbt_build() -> str:
-        return "echo 'pendiente: dbt build'"
-
     @task
     def generate_report() -> None:
         pass  # temporal: luego generará el reporte desde los marts
@@ -158,15 +164,40 @@ def mailamerica_pipeline():
             for name, files in extracted.items()
         ]
 
-    @task_group
-    def transform():
-        dbt_deps() >> dbt_build()
+    # Cosmos convierte cada modelo de dbt en una tarea de Airflow (y su test a continuación),
+    # respetando el linaje de los ref(): staging → intermediate → marts
+    transform = DbtTaskGroup(
+        group_id="transform",
+        project_config=ProjectConfig(
+            dbt_project_path=DBT_DIR,
+            install_dbt_deps=True,  # reemplaza a la tarea dbt_deps
+        ),
+        profile_config=ProfileConfig(
+            profile_name="mailamericas",
+            target_name="dev",
+            profiles_yml_filepath=f"{DBT_DIR}/profiles.yml",
+        ),
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_LS,  # lee el proyecto con dbt ls (preciso; Cosmos lo cachea)
+            dbt_executable_path=DBT_EXECUTABLE,
+            # dbt está en otro virtualenv: se ejecuta como subproceso. Explícito porque Cosmos confunde
+            # la carpeta del proyecto (/opt/airflow/dbt) con el paquete dbt y elegiría DBT_RUNNER
+            invocation_mode=InvocationMode.SUBPROCESS,
+            # Los tests que usan varios modelos (relationships con Georef, tests singulares de marts)
+            # van en una tarea aparte que espera a todos esos modelos
+            should_detach_multiple_parents_tests=True,
+        ),
+        execution_config=ExecutionConfig(
+            dbt_executable_path=DBT_EXECUTABLE,
+            invocation_mode=InvocationMode.SUBPROCESS,
+        ),
+    )
 
     @task_group
     def report():
         generate_report()
 
-    load(extract()) >> transform() >> report()
+    load(extract()) >> transform >> report()
 
 
 mailamerica_pipeline()

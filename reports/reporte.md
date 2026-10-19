@@ -1,6 +1,6 @@
 # Población de Argentina y demanda potencial de e-commerce
 
-_Generado el 2026-10-19 06:17 por el DAG `mailamerica_pipeline` a partir del warehouse. No editar a mano: se reescribe en cada ejecución._
+_Generado el 2026-10-19 06:58 por el DAG `mailamerica_pipeline` a partir del warehouse. No editar a mano: se reescribe en cada ejecución._
 
 **Fuentes:** INDEC, Censo 2022 (radios censales y hogares) y Georef (departamentos y sus centroides).
 **Población:** población en viviendas particulares, la única que el INDEC publica por radio censal (ver [Confiabilidad](#5-confiabilidad)).

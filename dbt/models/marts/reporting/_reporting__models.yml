@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: rpt_top10_departamentos
+    description: >
+      Pregunta 1 del reporte: los 10 departamentos con más población en viviendas particulares,
+      con su provincia, centroide y porcentaje sobre el total nacional.
+    columns:
+      - name: ranking
+        description: Posición por población (1 = más poblado).
+        data_tests:
+          - unique
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 10
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos.
+        data_tests:
+          - unique
+          - not_null
+      - name: nombre_departamento
+      - name: nombre_provincia
+      - name: latitud
+        description: Latitud del centroide del departamento (Georef).
+      - name: longitud
+        description: Longitud del centroide del departamento (Georef).
+      - name: poblacion
+        description: Población en viviendas particulares.
+      - name: porcentaje_poblacion_nacional
+        description: Porcentaje de la población nacional en viviendas particulares, con 2 decimales.

@@ -1,0 +1,7 @@
+.vscode/
+airflow/dags/__pycache__/
+airflow/logs/
+dbt/dbt_packages/
+dbt/logs/
+dbt/target/
+venv/

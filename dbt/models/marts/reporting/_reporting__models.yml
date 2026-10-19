@@ -53,3 +53,28 @@ models:
         description: Población en viviendas particulares.
       - name: porcentaje_poblacion_nacional
         description: Porcentaje de la población nacional en viviendas particulares, con 2 decimales.
+
+  - name: rpt_concentracion_poblacion
+    description: >
+      Pregunta 3 del reporte: concentración de la población. Para cortes fijos (top 10, 20, 50 y 100
+      departamentos) y para umbrales (50% y 80% de la población), cuántos departamentos son y qué
+      porcentaje de la población reúnen.
+    columns:
+      - name: corte
+        description: Descripción del corte o umbral.
+        data_tests:
+          - unique
+          - not_null
+      - name: departamentos
+        description: Cantidad de departamentos más poblados incluidos en el corte.
+        data_tests:
+          - not_null
+      - name: porcentaje_departamentos
+        description: Porcentaje que representan sobre el total de departamentos, con 2 decimales.
+      - name: porcentaje_poblacion
+        description: Porcentaje de la población nacional que reúnen, con 2 decimales.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100

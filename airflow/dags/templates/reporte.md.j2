@@ -1,0 +1,91 @@
+# Población de Argentina y demanda potencial de e-commerce
+
+_Generado el {{ generado_en }} por el DAG `mailamerica_pipeline` a partir del warehouse. No editar a mano: se reescribe en cada ejecución._
+
+**Fuentes:** INDEC, Censo 2022 (radios censales y hogares) y Georef (departamentos y sus centroides).
+**Población:** población en viviendas particulares, la única que el INDEC publica por radio censal (ver [Confiabilidad](#5-confiabilidad)).
+
+{% set top10 = concentracion | selectattr("corte", "equalto", "Top 10 departamentos") | first %}
+{% set umbral50 = concentracion | selectattr("corte", "equalto", "Departamentos para reunir el 50% de la población") | first %}
+{% set prioritario = segmentos | selectattr("segmento", "equalto", "Prioritario") | first %}
+{% set censada = calidad | selectattr("indicador", "equalto", "Población total censada") | first %}
+## Resumen
+
+- **{{ nacional.poblacion | numero }} personas** en **{{ nacional.departamentos | numero }} departamentos**.
+- Los 10 departamentos más poblados reúnen el **{{ top10.porcentaje_poblacion | numero(2) }}%** de la población, y con {{ umbral50.departamentos }} departamentos ({{ umbral50.porcentaje_departamentos | numero(2) }}% del total) se cubre la mitad del país.
+- {{ provincias[0].nombre_provincia }} concentra el **{{ provincias[0].porcentaje_poblacion_nacional | numero(2) }}%** de la población.
+- **{{ prioritario.departamentos }} departamentos prioritarios** para e-commerce reúnen el **{{ prioritario.porcentaje_mercado | numero(2) }}%** de los hogares conectados del país.
+- El reporte cubre el **{{ censada.porcentaje | numero(2) }}%** de la población censada; lo que falta es población fuera de viviendas particulares.
+
+## 1. Los 10 departamentos más poblados
+
+| # | Departamento | Provincia | Población | % nacional | Ubicación (lat, lon) |
+|---:|---|---|---:|---:|---|
+{% for r in top10_departamentos %}
+| {{ r.ranking }} | {{ r.nombre_departamento }} | {{ r.nombre_provincia }} | {{ r.poblacion | numero }} | {{ r.porcentaje_poblacion_nacional | numero(2) }} | {{ r.latitud | numero(4) }}, {{ r.longitud | numero(4) }} |
+{% endfor %}
+
+La ubicación es el centroide del departamento según Georef. Consulta: [`rpt_top10_departamentos.sql`](../dbt/models/marts/reporting/rpt_top10_departamentos.sql)
+
+## 2. Población por provincia
+
+| # | Provincia | Departamentos | Población | % nacional |
+|---:|---|---:|---:|---:|
+{% for r in provincias %}
+| {{ r.ranking }} | {{ r.nombre_provincia }} | {{ r.departamentos }} | {{ r.poblacion | numero }} | {{ r.porcentaje_poblacion_nacional | numero(2) }} |
+{% endfor %}
+
+Consulta: [`rpt_poblacion_por_provincia.sql`](../dbt/models/marts/reporting/rpt_poblacion_por_provincia.sql)
+
+## 3. Concentración de la población
+
+| Corte | Departamentos | % de departamentos | % de población |
+|---|---:|---:|---:|
+{% for r in concentracion %}
+| {{ r.corte }} | {{ r.departamentos }} | {{ r.porcentaje_departamentos | numero(2) }} | {{ r.porcentaje_poblacion | numero(2) }} |
+{% endfor %}
+
+La población está muy concentrada: el {{ top10.porcentaje_departamentos | numero(2) }}% de los departamentos reúne el {{ top10.porcentaje_poblacion | numero(2) }}% de las personas. Para una red logística, pocos nodos alcanzan a la mayor parte de la demanda potencial.
+
+Consulta: [`rpt_concentracion_poblacion.sql`](../dbt/models/marts/reporting/rpt_concentracion_poblacion.sql)
+
+## 4. Métrica logística: demanda potencial de e-commerce
+
+**Qué mide.** Cruza la población con los datos de hogares del Censo 2022 en dos dimensiones, ambas conteos exactos del censo:
+
+- **Tamaño del mercado digital:** hogares con celular con internet ({{ nacional.pct_conectados | numero(2) }}% de los hogares del país).
+- **Capacidad de compra:** porcentaje de hogares sin privación material ({{ nacional.pct_sin_privacion | numero(2) }}% a nivel nacional).
+
+**Por qué.** MailAmericas hace la última milla del e-commerce cross-border: sus envíos llegan a hogares que compran online. La población sola no distingue dónde se compra. La conectividad casi no varía entre departamentos, mientras que la capacidad de compra sí, y mucho. Cruzar ambas dimensiones indica dónde conviene priorizar capacidad de reparto.
+
+**Segmentos.** Mercado principal = los departamentos que hacen falta para reunir el 80% de los hogares conectados. Capacidad alta = porcentaje de hogares sin privación mayor o igual al promedio nacional.
+
+| Segmento | Departamentos | Hogares conectados | % del mercado |
+|---|---:|---:|---:|
+{% for r in segmentos %}
+| {{ r.segmento }} | {{ r.departamentos }} | {{ r.hogares_conectados | numero }} | {{ r.porcentaje_mercado | numero(2) }} |
+{% endfor %}
+
+**Los 15 mercados digitales más grandes:**
+
+| # | Departamento | Provincia | Hogares conectados | % conectados | % sin privación | Segmento |
+|---:|---|---|---:|---:|---:|---|
+{% for r in demanda %}
+| {{ r.ranking_mercado }} | {{ r.nombre_departamento }} | {{ r.nombre_provincia }} | {{ r.hogares_conectados | numero }} | {{ r.pct_hogares_conectados | numero(2) }} | {{ r.pct_hogares_sin_privacion | numero(2) }} | {{ r.segmento }} |
+{% endfor %}
+
+**Limitaciones de la métrica.** El censo publica cada variable por separado: no se sabe cuántos hogares conectados son además hogares sin privación, por lo que las dos dimensiones se cruzan a nivel departamento y no a nivel hogar. El corte de capacidad es binario, así que un departamento cerca del promedio nacional puede cambiar de segmento. No incluye datos de compras cross-border reales.
+
+Consulta: [`rpt_demanda_ecommerce.sql`](../dbt/models/marts/reporting/rpt_demanda_ecommerce.sql)
+
+## 5. Confiabilidad
+
+| Dimensión | Indicador | Valor | Referencia | % | Detalle |
+|---|---|---:|---:|---:|---|
+{% for r in calidad %}
+| {{ r.dimension }} | {{ r.indicador }} | {{ r.valor | numero }} | {{ r.referencia | numero }} | {{ r.porcentaje | numero(2) }} | {{ r.detalle }} |
+{% endfor %}
+
+Además, cada modelo de dbt tiene tests (claves únicas, relaciones entre fuentes, conservación de totales en los joins) que corren dentro del DAG: si alguno falla, este reporte no se genera.
+
+Consulta: [`dq_cobertura_y_calidad.sql`](../dbt/models/marts/quality/dq_cobertura_y_calidad.sql)

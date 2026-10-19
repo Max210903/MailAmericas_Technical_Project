@@ -24,6 +24,7 @@ from cosmos import (
     RenderConfig,
 )
 from cosmos.constants import InvocationMode, LoadMode
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 # Fuentes públicas: cada una se descarga y se carga tal cual a raw.<nombre>
 SOURCES_FILE = Path(__file__).parent / "config" / "sources.json"
@@ -38,8 +39,45 @@ DBT_DIR = "/opt/airflow/dbt"
 # dbt vive en su propio virtualenv dentro de la imagen (ver docker/airflow/Dockerfile)
 DBT_EXECUTABLE = "/home/airflow/dbt-venv/bin/dbt"
 
+# Reporte: plantilla junto al DAG; el resultado se escribe en reports/ (montado desde el repo)
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+REPORT_FILE = Path("/opt/airflow/reports/reporte.md")
+
+# Consultas del reporte: solo leen los marts (la lógica y sus tests viven en dbt)
+REPORT_QUERIES = {
+    "top10_departamentos": "select * from marts.rpt_top10_departamentos order by ranking",
+    "provincias": "select * from marts.rpt_poblacion_por_provincia order by ranking",
+    "concentracion": "select * from marts.rpt_concentracion_poblacion order by departamentos",
+    "demanda": "select * from marts.rpt_demanda_ecommerce where ranking_mercado <= 15 order by ranking_mercado",
+    "segmentos": """
+        select
+            segmento,
+            count(*)                as departamentos,
+            sum(hogares_conectados) as hogares_conectados,
+            round(100.0 * sum(hogares_conectados) / sum(sum(hogares_conectados)) over (), 2) as porcentaje_mercado
+        from marts.rpt_demanda_ecommerce
+        group by segmento
+        order by hogares_conectados desc
+    """,
+    "nacional": """
+        select
+            (select count(*) from marts.dim_departamentos)                            as departamentos,
+            sum(poblacion)                                                            as poblacion,
+            round(100.0 * sum(hogares_con_celular_internet) / sum(hogares_total), 2) as pct_conectados,
+            round(100.0 * sum(hogares_sin_privacion) / sum(hogares_total), 2)        as pct_sin_privacion
+        from marts.fct_radios_censales
+    """,
+    "calidad": "select * from marts.dq_cobertura_y_calidad order by orden",
+}
+
 # Logger de tareas de Airflow: lo que se registre aquí aparece en el log de cada tarea en la UI
 log = logging.getLogger("airflow.task")
+
+
+def numero(value, decimales: int = 0) -> str:
+    """Formatea un número al estilo argentino: punto de miles y coma decimal."""
+    texto = f"{value:,.{decimales}f}"
+    return texto.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
 @contextmanager
@@ -136,8 +174,34 @@ def mailamerica_pipeline():
         return total  # filas cargadas, visible en XCom
 
     @task
-    def generate_report() -> None:
-        pass  # temporal: luego generará el reporte desde los marts
+    def generate_report() -> str:
+        """Lee los marts del reporte, rellena la plantilla y escribe reports/reporte.md."""
+        conn = PostgresHook(postgres_conn_id="warehouse_default").get_conn()
+        data = {}
+        with conn, conn.cursor() as cur:
+            for name, query in REPORT_QUERIES.items():
+                cur.execute(query)
+                columns = [c.name for c in cur.description]
+                data[name] = [dict(zip(columns, row)) for row in cur.fetchall()]
+                log.info("%s: %d filas", name, len(data[name]))
+        conn.close()
+        data["nacional"] = data["nacional"][0]  # una sola fila
+
+        # StrictUndefined: una variable mal escrita en la plantilla hace fallar la tarea en vez de quedar vacía
+        env = Environment(
+            loader=FileSystemLoader(TEMPLATES_DIR),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        env.filters["numero"] = numero
+        report = env.get_template("reporte.md.j2").render(
+            generado_en=datetime.now().strftime("%Y-%m-%d %H:%M"), **data
+        )
+
+        REPORT_FILE.write_text(report, encoding="utf-8")
+        log.info("Reporte escrito en %s", REPORT_FILE)
+        return str(REPORT_FILE)
 
     @task_group
     def extract() -> dict:

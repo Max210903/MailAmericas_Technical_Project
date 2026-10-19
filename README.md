@@ -11,6 +11,8 @@ Pipeline ELT reproducible que descarga datos públicos del Censo 2022 y de Geore
 
 y cuantifica su confiabilidad (sección 5 del reporte).
 
+**Documentación de dbt:** [`reports/dbt_docs.html`](reports/dbt_docs.html), generada también por el DAG. Hay que descargarla y abrirla en el navegador: contiene el grafo de linaje navegable y la descripción y los tests de cada modelo y columna.
+
 ---
 
 ## Cómo ejecutarlo
@@ -41,7 +43,7 @@ y cuantifica su confiabilidad (sección 5 del reporte).
    docker exec mailamericas-airflow-scheduler airflow dags trigger mailamerica_pipeline
    ```
 
-5. Al terminar (unos minutos), el reporte queda en `reports/reporte.md`.
+5. Al terminar (unos minutos), el reporte queda en `reports/reporte.md` y la documentación de dbt en `reports/dbt_docs.html`.
 
 ### Otros comandos útiles
 
@@ -78,7 +80,9 @@ y cuantifica su confiabilidad (sección 5 del reporte).
 ├── docker/
 │   ├── airflow/                  # Dockerfile + compose de Airflow (con su propia base de metadatos)
 │   └── warehouse/                # compose del warehouse + script SQL de esquemas
-├── reports/reporte.md            # Reporte final (generado)
+├── reports/
+│   ├── reporte.md                # Reporte final (generado)
+│   └── dbt_docs.html             # Documentación de dbt con el linaje (generada)
 └── scripts/                      # set-up-airflow.sh, set-up-warehouse.sh, set-up-dbt.sh
 ```
 
@@ -196,7 +200,6 @@ Se mide de dos formas, ambas dentro del pipeline:
 
 **Con más tiempo**
 
-- Publicar la **documentación de dbt** (`dbt docs`) con el linaje navegable y la descripción de cada columna.
 - **Análisis de sensibilidad** de los cortes de segmentación, o reemplazarlos por una variable continua (por ejemplo, hogares conectados × % sin privación).
 - Sumar fuentes: **establecimientos productivos (CEP XXI)** para la demanda B2B, y la red vial o los centros de distribución para medir distancias reales.
 - Un **mapa** de los segmentos con las coordenadas que ya están en `rpt_demanda_ecommerce`.

@@ -19,3 +19,38 @@ models:
         description: Latitud del centroide del departamento (Georef).
       - name: longitud
         description: Longitud del centroide del departamento (Georef).
+
+  - name: fct_radios_censales
+    description: >
+      Hecho: una fila por radio censal con las medidas del Censo 2022 (población, viviendas e indicadores
+      de hogares). Une radios y hogares con full outer join: un radio sin datos en una de las fuentes
+      tiene 0 en esas medidas.
+    columns:
+      - name: codigo_radio
+        description: Código del radio censal (provincia + departamento + fracción + radio).
+        data_tests:
+          - unique
+          - not_null
+      - name: codigo_departamento
+        description: Código INDEC de 5 dígitos; clave hacia dim_departamentos.
+        data_tests:
+          - not_null
+          - relationships:
+              name: fct_radios_departamento_existe_en_dim
+              arguments:
+                to: ref('dim_departamentos')
+                field: codigo_departamento
+      - name: poblacion
+        description: Población en viviendas particulares.
+      - name: viviendas
+        description: Viviendas particulares.
+      - name: hogares_total
+        description: Hogares particulares.
+      - name: hogares_con_internet
+        description: Hogares con internet en la vivienda.
+      - name: hogares_con_celular_internet
+        description: Hogares con celular con internet.
+      - name: hogares_con_computadora
+        description: Hogares con computadora o tablet.
+      - name: hogares_sin_privacion
+        description: Hogares sin privación material.

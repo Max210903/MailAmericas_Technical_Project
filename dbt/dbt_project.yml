@@ -21,3 +21,8 @@ models:
     marts:
       +schema: marts
       +materialized: table
+
+seeds:
+  mailamericas:
+    # Datos de entrada estáticos y versionados: van junto a lo que carga Airflow
+    +schema: raw

@@ -1,0 +1,17 @@
+version: 2
+
+seeds:
+  - name: indec_totales_oficiales
+    description: >
+      Totales oficiales del Censo 2022 publicados por el INDEC, usados como referencia para medir la
+      cobertura del pipeline. La población censada es la suma de las otras tres.
+    columns:
+      - name: indicador
+        data_tests:
+          - unique
+          - not_null
+      - name: valor
+        description: Cantidad de personas.
+        data_tests:
+          - not_null
+      - name: fuente

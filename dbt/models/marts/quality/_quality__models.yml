@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: dq_cobertura_y_calidad
+    description: >
+      Confiabilidad del reporte: cobertura de población, departamentos y radios frente a sus referencias
+      (totales oficiales del INDEC y lista de Georef) e integridad de los joins entre fuentes.
+    columns:
+      - name: orden
+        description: Orden de presentación en el reporte.
+        data_tests:
+          - unique
+          - not_null
+      - name: dimension
+        description: Cobertura (cuánto del total se incluye) o Integridad (cuánto se pierde al cruzar fuentes).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Cobertura, Integridad]
+      - name: indicador
+        data_tests:
+          - unique
+          - not_null
+      - name: valor
+        description: Valor medido en el pipeline.
+        data_tests:
+          - not_null
+      - name: referencia
+        description: Valor contra el que se compara (explicado en detalle).
+        data_tests:
+          - not_null
+      - name: diferencia
+        description: referencia - valor.
+      - name: porcentaje
+        description: valor / referencia, en porcentaje con 2 decimales.
+      - name: detalle
+        description: Qué es la referencia y qué explica la diferencia.

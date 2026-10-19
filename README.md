@@ -61,14 +61,17 @@ y cuantifica su confiabilidad (sección 5 del reporte).
 ## Arquitectura
 
 ```
-                    ┌──────────────────────── DAG mailamerica_pipeline (Airflow 2) ────────────────────────┐
- Fuentes públicas   │  extract              load                transform (Cosmos)           report       │
- INDEC · Georef ───►│  download ×26  ──►  load_to_raw ×3  ──►  dbt seed/run/test ×30  ──►  generate_report │──► reports/reporte.md
-                    └──────────────────────────────────────────────────────────────────────────────────────┘
-                                             │                      │
-                                             ▼                      ▼
-                                 PostgreSQL warehouse:  raw ──► staging ──► intermediate ──► marts
+                  ┌───────────────────────────── DAG mailamerica_pipeline (Airflow 2) ──────────────────────────────┐
+ Fuentes públicas │  extract         load               staging ──► intermediate ──► marts        report            │
+ INDEC · Georef ─►│  download ×26 ─► load_to_raw ×3 ─►  └──────── dbt con Cosmos ×18 ────────┘ ─► generate_report   │─► reports/
+                  │                                                                              generate_dbt_docs │
+                  └─────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                         │                                │
+                                         ▼                                ▼
+                             PostgreSQL warehouse:  raw ──► staging ──► intermediate ──► marts
 ```
+
+Los grupos `staging`, `intermediate` y `marts` del DAG corresponden a las capas de dbt. Cada modelo es una tarea (`dbt build`: el modelo y sus tests). Los tests que cruzan varios modelos son tareas aparte y corren en la última capa que usan.
 
 ```
 .

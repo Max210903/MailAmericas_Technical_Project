@@ -25,7 +25,7 @@ check_requirements() {
 }
 
 create_dirs() {
-  mkdir -p "$ROOT_DIR"/airflow/{dags,plugins,logs} "$ROOT_DIR"/dbt
+  mkdir -p "$ROOT_DIR"/airflow/{dags,plugins,logs} "$ROOT_DIR"/dbt "$ROOT_DIR"/reports
 }
 
 # Conecta Airflow a la red del warehouse si está levantado (idempotente).

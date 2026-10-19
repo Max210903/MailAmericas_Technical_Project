@@ -42,6 +42,7 @@ DBT_EXECUTABLE = "/home/airflow/dbt-venv/bin/dbt"
 # Reporte: plantilla junto al DAG; el resultado se escribe en reports/ (montado desde el repo)
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 REPORT_FILE = Path("/opt/airflow/reports/reporte.md")
+DBT_DOCS_FILE = Path("/opt/airflow/reports/dbt_docs.html")
 
 # Consultas del reporte: solo leen los marts (la lógica y sus tests viven en dbt)
 REPORT_QUERIES = {
@@ -203,6 +204,17 @@ def mailamerica_pipeline():
         log.info("Reporte escrito en %s", REPORT_FILE)
         return str(REPORT_FILE)
 
+    @task.bash
+    def generate_dbt_docs() -> str:
+        """Genera la documentación de dbt (linaje, modelos, columnas y tests) como un único HTML en reports/."""
+        # deps: en un clon nuevo dbt_packages no existe (Cosmos instala los paquetes en una copia temporal).
+        # --static: un solo HTML con manifest y catálogo incluidos, se abre sin servidor
+        return (
+            f"cd {DBT_DIR} && {DBT_EXECUTABLE} deps"
+            f" && {DBT_EXECUTABLE} docs generate --static --target-path /tmp/dbt_docs"
+            f" && cp /tmp/dbt_docs/static_index.html {DBT_DOCS_FILE}"
+        )
+
     @task_group
     def extract() -> dict:
         extracted = {}
@@ -260,6 +272,7 @@ def mailamerica_pipeline():
     @task_group
     def report():
         generate_report()
+        generate_dbt_docs()
 
     load(extract()) >> transform >> report()
 

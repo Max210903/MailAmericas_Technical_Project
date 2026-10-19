@@ -94,6 +94,40 @@ def open_source(path: str):
             yield f
 
 
+def dbt_layer(group_id: str, select: list[str], exclude: list[str] | None = None) -> DbtTaskGroup:
+    """Grupo de Cosmos con los modelos de dbt seleccionados: una tarea por modelo, misma configuración en todas las capas."""
+    return DbtTaskGroup(
+        group_id=group_id,
+        project_config=ProjectConfig(
+            dbt_project_path=DBT_DIR,
+            install_dbt_deps=True,  # reemplaza a la tarea dbt_deps
+        ),
+        profile_config=ProfileConfig(
+            profile_name="mailamericas",
+            target_name="dev",
+            profiles_yml_filepath=f"{DBT_DIR}/profiles.yml",
+        ),
+        render_config=RenderConfig(
+            load_method=LoadMode.DBT_LS,  # lee el proyecto con dbt ls (preciso; Cosmos lo cachea)
+            dbt_executable_path=DBT_EXECUTABLE,
+            # dbt está en otro virtualenv: se ejecuta como subproceso. Explícito porque Cosmos confunde
+            # la carpeta del proyecto (/opt/airflow/dbt) con el paquete dbt y elegiría DBT_RUNNER
+            invocation_mode=InvocationMode.SUBPROCESS,
+            # Una tarea por modelo con dbt build (corre el modelo y sus tests), en vez de un subgrupo run + test
+            test_behavior=TestBehavior.BUILD,
+            # Los tests que usan varios modelos (relationships con Georef, tests singulares de marts)
+            # van en una tarea aparte que espera a todos esos modelos
+            should_detach_multiple_parents_tests=True,
+            select=select,
+            exclude=exclude or [],
+        ),
+        execution_config=ExecutionConfig(
+            dbt_executable_path=DBT_EXECUTABLE,
+            invocation_mode=InvocationMode.SUBPROCESS,
+        ),
+    )
+
+
 @dag(
     dag_id="mailamerica_pipeline",
     description="Población por departamento + demanda potencial de e-commerce",
@@ -240,43 +274,29 @@ def mailamerica_pipeline():
             for name, files in extracted.items()
         ]
 
-    # Cosmos convierte cada modelo de dbt en una tarea de Airflow,
-    # respetando el linaje de los ref(): staging → intermediate → marts
-    transform = DbtTaskGroup(
-        group_id="transform",
-        project_config=ProjectConfig(
-            dbt_project_path=DBT_DIR,
-            install_dbt_deps=True,  # reemplaza a la tarea dbt_deps
-        ),
-        profile_config=ProfileConfig(
-            profile_name="mailamericas",
-            target_name="dev",
-            profiles_yml_filepath=f"{DBT_DIR}/profiles.yml",
-        ),
-        render_config=RenderConfig(
-            load_method=LoadMode.DBT_LS,  # lee el proyecto con dbt ls (preciso; Cosmos lo cachea)
-            dbt_executable_path=DBT_EXECUTABLE,
-            # dbt está en otro virtualenv: se ejecuta como subproceso. Explícito porque Cosmos confunde
-            # la carpeta del proyecto (/opt/airflow/dbt) con el paquete dbt y elegiría DBT_RUNNER
-            invocation_mode=InvocationMode.SUBPROCESS,
-            # Una tarea por modelo con dbt build (corre el modelo y sus tests), en vez de un subgrupo run + test
-            test_behavior=TestBehavior.BUILD,
-            # Los tests que usan varios modelos (relationships con Georef, tests singulares de marts)
-            # van en una tarea aparte que espera a todos esos modelos
-            should_detach_multiple_parents_tests=True,
-        ),
-        execution_config=ExecutionConfig(
-            dbt_executable_path=DBT_EXECUTABLE,
-            invocation_mode=InvocationMode.SUBPROCESS,
-        ),
+    # Un grupo por capa de dbt; dentro de cada uno, el orden sale del linaje de los ref().
+    # Cada capa excluye los tests que también dependen de capas posteriores: corren en la última capa que los usa
+    staging = dbt_layer(
+        "staging",
+        select=["path:models/staging"],
+        exclude=[
+            "resource_type:test,path:models/intermediate+",
+            "resource_type:test,path:models/marts+",
+        ],
     )
+    intermediate = dbt_layer(
+        "intermediate",
+        select=["path:models/intermediate"],
+        exclude=["resource_type:test,path:models/marts+"],
+    )
+    marts = dbt_layer("marts", select=["path:models/marts", "path:seeds"])
 
     @task_group
     def report():
         generate_report()
         generate_dbt_docs()
 
-    load(extract()) >> transform >> report()
+    load(extract()) >> staging >> intermediate >> marts >> report()
 
 
 mailamerica_pipeline()

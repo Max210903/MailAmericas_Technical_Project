@@ -54,7 +54,8 @@ connect_warehouse() {
 
 verify() {
   log "Verificando..."
-  curl -sf "$AIRFLOW_URL/health" >/dev/null || fail "El webserver no responde en $AIRFLOW_URL/health"
+  # curl del contenedor (el host puede no tenerlo instalado)
+  compose exec -T airflow-webserver curl -sf http://localhost:8080/health >/dev/null || fail "El webserver no responde en $AIRFLOW_URL/health"
   log "Versión: $(compose exec -T airflow-scheduler airflow version 2>/dev/null | tail -1)"
   log "Airflow listo en $AIRFLOW_URL (usuario: admin / contraseña: admin)"
 }

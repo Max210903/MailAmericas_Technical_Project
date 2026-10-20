@@ -20,6 +20,7 @@ y cuantifica su confiabilidad (sección 5 del reporte).
 ### Requisitos
 
 - Linux o WSL2 (probado en Ubuntu 22.04) con **Docker Engine** nativo y el plugin `docker compose`. Docker Desktop no está soportado: los scripts lo detectan y se detienen.
+- Si tu usuario no está en el grupo `docker`, los scripts se reejecutan con `sudo` y piden la contraseña. Para evitarlo (opcional, una sola vez): `sudo usermod -aG docker $USER` y cerrar sesión. Ten en cuenta que el grupo `docker` da permisos equivalentes a root.
 - Puertos libres: `8080` (Airflow) y `5432` (warehouse).
 - Conexión a internet: el DAG descarga las fuentes en cada ejecución.
 

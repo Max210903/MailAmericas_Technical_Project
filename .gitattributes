@@ -1,0 +1,2 @@
+# Los scripts deben tener finales de línea LF aunque se clonen en Windows/WSL con autocrlf
+*.sh text eol=lf

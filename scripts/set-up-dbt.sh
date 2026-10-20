@@ -8,6 +8,12 @@ DBT_DIR="/opt/airflow/dbt"
 log()  { printf '\033[1;35m[dbt]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 
+# Sin permiso sobre el socket de Docker (usuario fuera del grupo docker): se reejecuta con sudo
+if [[ $EUID -ne 0 ]] && grep -qi "permission denied" <<<"$(docker info 2>&1)"; then
+  log "Tu usuario no está en el grupo docker: se reejecuta con sudo"
+  exec sudo -E bash "$0" "$@"
+fi
+
 check_scheduler() {
   [[ "$(docker inspect -f '{{.State.Running}}' "$SCHEDULER" 2>/dev/null)" == "true" ]] \
     || fail "El scheduler de Airflow no está corriendo. Ejecuta primero: ./scripts/set-up-airflow.sh up"

@@ -8,13 +8,19 @@ AIRFLOW_URL="http://localhost:8080"
 WAREHOUSE_NET="mailamericas-warehouse-net"
 AIRFLOW_CONTAINERS=(mailamericas-airflow-scheduler mailamericas-airflow-webserver)
 
-# UID de quien ejecuta, para que airflow/logs no quede como root
-export AIRFLOW_UID="$(id -u)"
+# UID de quien ejecuta (aunque sea con sudo), para que airflow/logs, dbt/ y reports/ no queden como root
+export AIRFLOW_UID="${SUDO_UID:-$(id -u)}"
 
 log()  { printf '\033[1;34m[airflow]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 
 compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+
+# Sin permiso sobre el socket de Docker (usuario fuera del grupo docker): se reejecuta con sudo
+if [[ $EUID -ne 0 ]] && grep -qi "permission denied" <<<"$(docker info 2>&1)"; then
+  log "Tu usuario no está en el grupo docker: se reejecuta con sudo"
+  exec sudo -E bash "$0" "$@"
+fi
 
 check_requirements() {
   command -v docker >/dev/null || fail "Docker no está instalado."
@@ -26,6 +32,8 @@ check_requirements() {
 
 create_dirs() {
   mkdir -p "$ROOT_DIR"/airflow/{dags,plugins,logs} "$ROOT_DIR"/dbt "$ROOT_DIR"/reports
+  # Con sudo, mkdir las crea como root: se devuelven al usuario
+  [[ -z "${SUDO_UID:-}" ]] || chown "$SUDO_UID:$SUDO_GID" "$ROOT_DIR"/airflow/{plugins,logs}
 }
 
 # Conecta Airflow a la red del warehouse si está levantado (idempotente).
@@ -46,7 +54,8 @@ connect_warehouse() {
 
 verify() {
   log "Verificando..."
-  curl -sf "$AIRFLOW_URL/health" >/dev/null || fail "El webserver no responde en $AIRFLOW_URL/health"
+  # curl del contenedor (el host puede no tenerlo instalado)
+  compose exec -T airflow-webserver curl -sf http://localhost:8080/health >/dev/null || fail "El webserver no responde en $AIRFLOW_URL/health"
   log "Versión: $(compose exec -T airflow-scheduler airflow version 2>/dev/null | tail -1)"
   log "Airflow listo en $AIRFLOW_URL (usuario: admin / contraseña: admin)"
 }

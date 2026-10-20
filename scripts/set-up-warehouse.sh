@@ -13,6 +13,12 @@ fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 
 compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
+# Sin permiso sobre el socket de Docker (usuario fuera del grupo docker): se reejecuta con sudo
+if [[ $EUID -ne 0 ]] && grep -qi "permission denied" <<<"$(docker info 2>&1)"; then
+  log "Tu usuario no está en el grupo docker: se reejecuta con sudo"
+  exec sudo -E bash "$0" "$@"
+fi
+
 check_requirements() {
   command -v docker >/dev/null || fail "Docker no está instalado."
   docker compose version >/dev/null 2>&1 || fail "Falta el plugin 'docker compose'."
